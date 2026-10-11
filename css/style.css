@@ -202,3 +202,236 @@ body {
 .mode-btn.is-selected {
   background: #999999;
 }
+
+/* ===== 홈 아이콘 (디테일 화면에서만) ===== */
+#home-btn {
+  position: absolute;
+  top: 42px;
+  left: 54px;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+#home-btn img {
+  display: block;
+  width: 58px;
+  height: 58px;
+  transition: filter 0.2s ease;
+}
+
+#home-btn:hover img {
+  filter: brightness(0.7); /* 호버 시 색이 진해짐 */
+}
+
+.home-tooltip {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #666666;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+#home-btn:hover .home-tooltip {
+  opacity: 1;
+}
+
+.mode-outside-detail #home-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ===== Outside 디테일: 도면 ===== */
+#stadium {
+  transition: transform 0.8s ease;
+}
+
+.route-label {
+  transition: opacity 0.35s ease;
+}
+
+/* 도면을 오른쪽으로 이동 (오른쪽 끝은 화면 밖으로 잘려도 됨) */
+.mode-outside-detail #stadium {
+  transform: translateX(747px);
+}
+
+/* 건물 숨김, 선택한 부스만 남기고 나머지 부스는 20% */
+.mode-outside-detail #stadium [id$="-building"] {
+  opacity: 0;
+}
+
+.mode-outside-detail #stadium [id*="-booth-"] {
+  opacity: 0.2;
+}
+
+.detail-membership #stadium [id$="-booth-membership"],
+.detail-spotify #stadium [id$="-booth-spotify"] {
+  opacity: 1;
+}
+
+/* 선택한 부스의 연결 기둥(면 + 선) */
+.detail-membership #stadium [id^="link-membership"],
+.detail-spotify #stadium [id^="link-spotify"] {
+  opacity: 1;
+}
+
+/* 이동경로 번호는 선택한 부스 것만 */
+.mode-outside-detail .route-label {
+  opacity: 0;
+}
+
+.detail-membership .route-membership,
+.detail-spotify .route-spotify {
+  opacity: 1;
+}
+
+/* 메인 요소 숨김 */
+#intro-text,
+#mode-buttons {
+  transition: opacity 0.35s ease;
+}
+
+.mode-outside-detail #intro-text,
+.mode-outside-detail #mode-buttons,
+.mode-outside-detail #date-labels {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ===== Outside 디테일: 화면 요소 ===== */
+#outside-detail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.mode-outside-detail #outside-detail {
+  opacity: 1;
+  transition-delay: 0.3s; /* 도면이 어느 정도 이동한 뒤 나타남 */
+}
+
+.detail-category {
+  position: absolute;
+  top: 47px;
+  left: 136px;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 48px;
+}
+
+/* 부스 정보 박스 */
+#booth-info {
+  position: absolute;
+  top: 124px;
+  left: 54px;
+  width: 248px;
+  height: 360px;
+  padding: 16px 18px;
+  background: #d9d9d9;
+}
+
+#booth-info h3 {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 26px;
+}
+
+.booth-event {
+  margin-top: 36px;
+}
+
+.booth-event:first-of-type {
+  margin-top: 8px;
+}
+
+.event-label,
+.event-title {
+  font-size: 15px;
+  line-height: 18px;
+}
+
+.event-desc {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* 날짜별 행과 범례 (SVG) */
+#detail-rows {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+}
+
+.detail-time,
+.legend-text {
+  fill: #666666;
+  font-size: 12px;
+  dominant-baseline: central;
+}
+
+.leader-line {
+  fill: none;
+  stroke: #61a6b2;
+  stroke-width: 2;
+}
+
+.timeline-out,
+.timeline-in {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.timeline-out {
+  stroke: #9eccd4;
+}
+
+.timeline-in {
+  stroke: #f6cfd9;
+}
+
+.wait-tick {
+  stroke: #666666;
+  stroke-width: 2;
+}
+
+/* 다른 부스로 넘어가는 버튼 */
+#booth-switch {
+  position: absolute;
+  top: 434px;
+  left: 1779px;
+  width: 50px;
+  height: 205px;
+  border: none;
+  background: #d9d9d9;
+  color: #000000;
+  font-family: inherit;
+  font-size: 15px;
+  writing-mode: vertical-rl;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+#booth-switch:hover {
+  background: #999999;
+}
+
+.mode-outside-detail #booth-switch {
+  pointer-events: auto;
+}

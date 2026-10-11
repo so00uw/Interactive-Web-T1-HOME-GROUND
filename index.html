@@ -262,6 +262,30 @@
       <button type="button" class="mode-btn" data-mode="outside">OUTSIDE</button>
       <button type="button" class="mode-btn" data-mode="inside">INSIDE</button>
     </nav>
+
+    <!-- 홈 아이콘 (메인 이외의 모든 화면) -->
+    <button type="button" id="home-btn" aria-label="HOME">
+      <img src="assets/icons/home.svg" alt="" />
+      <span class="home-tooltip">HOME</span>
+    </button>
+
+    <!-- Outside 디테일 (main.js가 내용 생성) -->
+    <section id="outside-detail">
+      <h2 class="detail-category">Outside</h2>
+      <div id="booth-info"></div>
+      <svg id="detail-rows" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- 기호 정도: 아래 진한 청록 → 위로 투명 -->
+          <linearGradient id="level-gradient" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0" stop-color="#61A6B2" />
+            <stop offset="0.1" stop-color="#61A6B2" />
+            <stop offset="1" stop-color="#61A6B2" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+        <g id="detail-legend"></g>
+      </svg>
+      <button type="button" id="booth-switch"></button>
+    </section>
   </div>
 
   <script src="js/data.js"></script>

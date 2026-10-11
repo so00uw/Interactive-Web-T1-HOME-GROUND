@@ -1,5 +1,5 @@
 // ===== 데이터 =====
-// 기호 정도(wait, noise, physical)는 1~3. null = 아직 채우지 않은 값 (spec.md의 "?").
+// 기호 정도(wait, noise, physical)는 채움 비율: 1/3, 2/3, 3/3. null = 아직 채우지 않은 값.
 
 const WEATHER = {
   day1: { date: "8/14", text: "32°-27°" },
@@ -19,19 +19,19 @@ const BOOTHS = {
       day1: {
         depart: "09:00", enter: "14:30", leave: "21:44",
         wait: ["11:40", "11:48"],
-        level: { wait: null, noise: null, physical: null },
+        level: { wait: 1/3, noise: 2/3, physical: 1/3 },
         memo: null,
       },
       day2: {
         depart: "10:00", enter: "16:00", leave: "19:52",
         wait: ["12:20"], // 대기 없음 (도착 시각만)
-        level: { wait: null, noise: null, physical: null },
+        level: { wait: 1/3, noise: 2/3, physical: 1/3 },
         memo: "*수량 부족",
       },
       day3: {
         depart: "09:30", enter: "15:30", leave: "21:41",
         wait: ["11:00", "11:48"],
-        level: { wait: null, noise: null, physical: null },
+        level: { wait: 2/3, noise: 2/3, physical: 3/3 },
         memo: null,
       },
     },
@@ -48,13 +48,13 @@ const BOOTHS = {
       day2: {
         depart: "10:00", enter: "16:00", leave: "19:52",
         wait: ["12:10", "14:30"],
-        level: { wait: null, noise: null, physical: null },
+        level: { wait: 3/3, noise: 3/3, physical: 3/3 },
         memo: null,
       },
       day3: {
         depart: "09:30", enter: "15:30", leave: "21:41",
         wait: ["11:00", "14:27"],
-        level: { wait: null, noise: null, physical: null },
+        level: { wait: 3/3, noise: 2/3, physical: 3/3 },
         memo: null,
       },
     },

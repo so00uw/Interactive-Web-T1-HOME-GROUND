@@ -71,11 +71,11 @@ drawDateLabels();
 
 // ===== 이동경로 번호 (1)~(4) =====
 // 그날 부스를 돈 순서. 층과 함께 움직이도록 각 날짜 그룹(day1~day3) 안에 넣는다.
-// 좌표는 reference/01-main.png에서 잰 글자 중심.
+// 좌표는 reference/01-main.png에서 잰 글자 중심. [번호, x, y, 해당 부스]
 const ROUTE_LABELS = {
-  day1: [[1, 1126.5, 386.5], [2, 829.5, 374], [3, 633.5, 197.5], [4, 1217.5, 166]],
-  day2: [[1, 1126.5, 687.5], [2, 829.5, 675], [3, 633.5, 500.5], [4, 1174.5, 500]],
-  day3: [[1, 1126.5, 986.5], [2, 658.5, 782], [3, 829.5, 968.5]],
+  day1: [[1, 1126.5, 386.5, "k9"], [2, 829.5, 374, "spotify"], [3, 633.5, 197.5, "membership"], [4, 1217.5, 166, null]],
+  day2: [[1, 1126.5, 687.5, "k9"], [2, 829.5, 675, "spotify"], [3, 633.5, 500.5, "membership"], [4, 1174.5, 500, null]],
+  day3: [[1, 1126.5, 986.5, "k9"], [2, 658.5, 782, "membership"], [3, 829.5, 968.5, "spotify"]],
 };
 
 function drawRouteLabels() {
@@ -86,9 +86,9 @@ function drawRouteLabels() {
     g.setAttribute("id", `${day}-route`);
     g.setAttribute("class", "route-labels");
 
-    labels.forEach(([num, x, y]) => {
+    labels.forEach(([num, x, y, booth]) => {
       const text = document.createElementNS(NS, "text");
-      text.setAttribute("class", "route-label");
+      text.setAttribute("class", booth ? `route-label route-${booth}` : "route-label");
       text.setAttribute("x", x);
       text.setAttribute("y", y);
       text.textContent = `(${num})`;
@@ -116,17 +116,23 @@ function drawK9Name() {
 drawK9Name();
 
 // ===== 화면 상태 =====
-// mode: "main" | "outside" | "inside". #stage에 mode-* 클래스로 반영하고, 모양은 CSS가 맡는다.
+// mode: "main" | "outside" | "inside" | "outside-detail"
+// #stage에 mode-* 클래스(디테일이면 detail-{부스}도)로 반영하고, 모양은 CSS가 맡는다.
 const stage = document.getElementById("stage");
 const modeButtons = document.querySelectorAll(".mode-btn");
+const MODES = ["main", "outside", "inside", "outside-detail"];
+const DETAIL_BOOTHS = ["membership", "spotify"];
 let mode = "main";
+let detailBooth = null;
 
-function setMode(next) {
+function setMode(next, booth = null) {
   mode = next;
-  stage.classList.remove("mode-main", "mode-outside", "mode-inside");
-  stage.classList.add(`mode-${mode}`);
+  detailBooth = booth;
+  MODES.forEach((m) => stage.classList.toggle(`mode-${m}`, m === mode));
+  DETAIL_BOOTHS.forEach((b) => stage.classList.toggle(`detail-${b}`, b === detailBooth));
   modeButtons.forEach((btn) => btn.classList.toggle("is-selected", btn.dataset.mode === mode));
   setHoverBooth(null);
+  if (mode === "outside-detail") renderOutsideDetail(booth);
 }
 
 modeButtons.forEach((btn) => {
@@ -138,10 +144,13 @@ modeButtons.forEach((btn) => {
   });
 });
 
-// ESC: 선택 상태 → 메인
+// ESC: 한 단계 뒤로 (디테일 → 메인, 선택 상태 → 메인)
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && mode !== "main") setMode("main");
 });
+
+// 홈 아이콘 → 메인
+document.getElementById("home-btn").addEventListener("click", () => setMode("main"));
 
 // ===== 부스 호버 (OUTSIDE 선택 상태에서만) =====
 // 어느 날짜 구역에 올려도 그 부스의 3일치가 함께 반응한다.
@@ -158,9 +167,218 @@ HOVER_BOOTHS.forEach((booth) => {
       if (mode === "outside") setHoverBooth(booth);
     });
     el.addEventListener("mouseleave", () => setHoverBooth(null));
-    // 클릭 → Outside 디테일 (4단계에서 연결)
+    // 클릭 → 해당 부스의 Outside 디테일
+    if (DETAIL_BOOTHS.includes(booth)) {
+      el.addEventListener("click", () => {
+        if (mode === "outside") setMode("outside-detail", booth);
+      });
+    }
   });
 });
+
+// ===== Outside 디테일 =====
+// 도면은 CSS로 오른쪽으로 747px 이동 (reference/04-outside 기준). 아래 좌표는 모두 이동 후 화면 좌표.
+const SVG_NS = "http://www.w3.org/2000/svg";
+const TIMELINE_W = 382; // 세 날짜 모두 같은 길이
+const TICK = 12; // 타임라인 끝과 입장 지점에서 위로 올라가는 눈금 길이
+const WAIT_LEN = 63; // 대기 눈금 길이
+const LEVEL_KEYS = ["wait", "noise", "physical"];
+const ICON = { w: 36, h: 62, gap: 8 }; // 기호 한 칸
+
+// 날짜별 행 배치. timeline: 출발 지점 x와 선 높이 y / leader: 부스 구역 점 → 꺾이는 점 → 끝 x
+// 미참여(absent) 날은 timeline 대신 photo: [x, y, 폭, 높이]
+const DETAIL_LAYOUT = {
+  membership: {
+    day1: { timeline: [645, 229], leader: [[1443, 238], [1309, 308], 1080] },
+    day2: { timeline: [539, 516], leader: [[1428, 535], [1285, 596], 997] },
+    day3: { timeline: [735, 748], leader: [[1435, 765], [1332, 714], 1168] },
+  },
+};
+
+const toMin = (t) => {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+};
+
+function svgEl(tag, attrs = {}, text) {
+  const el = document.createElementNS(SVG_NS, tag);
+  Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+
+// 타임라인 모양: 출발~입장(청록) + 입장~귀가(분홍), 양 끝과 입장 지점에 위로 눈금
+function drawTimeline(parent, x0, y0, xEnter, labels, textClass) {
+  const xEnd = x0 + TIMELINE_W;
+  const ty = y0 - TICK - 14;
+  parent.append(
+    svgEl("polyline", { class: "timeline-out", points: `${x0},${y0 - TICK} ${x0},${y0} ${xEnter},${y0} ${xEnter},${y0 - TICK}` }),
+    svgEl("polyline", { class: "timeline-in", points: `${xEnter},${y0} ${xEnd},${y0} ${xEnd},${y0 - TICK}` }),
+    svgEl("text", { class: textClass, x: x0, y: ty, "text-anchor": "middle" }, labels[0]),
+    svgEl("text", { class: textClass, x: xEnter, y: ty, "text-anchor": "middle" }, labels[1]),
+    svgEl("text", { class: textClass, x: xEnd, y: ty, "text-anchor": "middle" }, labels[2])
+  );
+}
+
+// 기호 한 칸: 아래에서부터 level(1/3, 2/3, 3/3)만큼 청록 그라데이션 배경 + 아이콘
+function drawLevelIcon(parent, key, x, y, level) {
+  const g = svgEl("g", { class: "level-icon", transform: `translate(${x} ${y})` });
+  const fillH = ICON.h * level;
+  g.append(
+    svgEl("rect", { x: 0, y: ICON.h - fillH, width: ICON.w, height: fillH, fill: "url(#level-gradient)" }),
+    svgEl("image", { href: `assets/icons/${key}.svg`, x: 2.5, y: 0, width: 31, height: ICON.h })
+  );
+  parent.append(g);
+}
+
+function drawDayRow(svg, booth, day) {
+  const data = BOOTHS[booth].days[day];
+  const layout = DETAIL_LAYOUT[booth][day];
+  const g = svgEl("g", { class: "detail-row", id: `detail-${day}` });
+
+  // 지시선: 부스 구역 → 꺾임 → 화면 가운데 쪽. 선 위에 날짜, 아래에 날씨
+  const [[ax, ay], [bx, by], endX] = layout.leader;
+  g.append(
+    svgEl("polyline", { class: "leader-line", points: `${ax},${ay} ${bx},${by} ${endX},${by}` }),
+    svgEl("text", { class: "detail-time", x: endX, y: by - 10 }, WEATHER[day].date),
+    svgEl("text", { class: "detail-time", x: endX, y: by + 10 }, WEATHER[day].text)
+  );
+
+  if (data.absent) {
+    // 미참여: 사진 + "*미참여"
+    const [px, py, pw, ph] = layout.photo;
+    g.append(
+      svgEl("image", { href: data.photo, x: px, y: py, width: pw, height: ph, preserveAspectRatio: "xMidYMid slice" }),
+      svgEl("text", { class: "detail-time", x: px - 14, y: py + ph - 7, "text-anchor": "end" }, "*미참여")
+    );
+    svg.append(g);
+    return;
+  }
+
+  // 타임라인: 왼쪽 끝 = 출발, 오른쪽 끝 = 귀가. 그 사이 시각은 비율로 위치
+  const [x0, y0] = layout.timeline;
+  const start = toMin(data.depart);
+  const span = toMin(data.leave) - start;
+  const xOf = (t) => x0 + ((toMin(t) - start) / span) * TIMELINE_W;
+  drawTimeline(g, x0, y0, xOf(data.enter), [data.depart, data.enter, data.leave], "detail-time");
+
+  // 대기 눈금: 대기 시작·종료 (대기 없던 날은 도착 시각 1개)
+  const LABEL_HALF = 15; // 시각 글자 폭의 절반 (대략)
+  const waitXs = data.wait.map(xOf);
+  // 두 눈금이 가까우면 글자가 겹치지 않게 좌우로 벌린다
+  let labelXs = waitXs;
+  if (waitXs.length === 2 && waitXs[1] - waitXs[0] < LABEL_HALF * 2 + 4) {
+    const mid = (waitXs[0] + waitXs[1]) / 2;
+    labelXs = [mid - LABEL_HALF - 2, mid + LABEL_HALF + 2];
+  }
+  data.wait.forEach((t, i) => {
+    g.append(
+      svgEl("line", { class: "wait-tick", x1: waitXs[i], y1: y0, x2: waitXs[i], y2: y0 + WAIT_LEN }),
+      svgEl("text", { class: "detail-time", x: labelXs[i], y: y0 + WAIT_LEN + 9, "text-anchor": "middle" }, t)
+    );
+  });
+
+  // 기호 3개: 대기 눈금(과 그 시각 글자) 오른쪽
+  const iconX = Math.max(waitXs.at(-1) + 28, labelXs.at(-1) + LABEL_HALF + 12);
+  const iconY = y0 + 18;
+  LEVEL_KEYS.forEach((key, i) => {
+    drawLevelIcon(g, key, iconX + i * (ICON.w + ICON.gap), iconY, data.level[key]);
+  });
+
+  // 메모: 기호 오른쪽 위
+  if (data.memo) {
+    const memoX = iconX + 3 * ICON.w + 2 * ICON.gap + 12;
+    g.append(svgEl("text", { class: "detail-time", x: memoX, y: iconY + 9 }, data.memo));
+  }
+
+  svg.append(g);
+}
+
+function renderBoothInfo(booth) {
+  const box = document.getElementById("booth-info");
+  const { name, events } = BOOTHS[booth];
+  box.innerHTML = "";
+  const h = document.createElement("h3");
+  h.textContent = name;
+  box.append(h);
+  (events || []).forEach(({ title, desc }) => {
+    // "Event 1 · 제목" → "Event 1" / "제목" 두 줄
+    const [label, ...rest] = title.split(" · ");
+    const item = document.createElement("div");
+    item.className = "booth-event";
+    [["event-label", label], ["event-title", rest.join(" · ")], ["event-desc", desc]].forEach(([cls, text]) => {
+      const p = document.createElement("p");
+      p.className = cls;
+      p.textContent = text;
+      item.append(p);
+    });
+    box.append(item);
+  });
+}
+
+function renderOutsideDetail(booth) {
+  renderBoothInfo(booth);
+
+  const svg = document.getElementById("detail-rows");
+  svg.querySelectorAll(".detail-row").forEach((el) => el.remove());
+  ["day1", "day2", "day3"].forEach((day) => drawDayRow(svg, booth, day));
+
+  // 다른 부스로 넘어가는 버튼: 다음 부스 이름 표시
+  const other = DETAIL_BOOTHS.find((b) => b !== booth);
+  const switchBtn = document.getElementById("booth-switch");
+  switchBtn.textContent = BOOTHS[other].name;
+  switchBtn.dataset.booth = other;
+}
+
+document.getElementById("booth-switch").addEventListener("click", (e) => {
+  const next = e.currentTarget.dataset.booth;
+  if (DETAIL_LAYOUT[next]) setMode("outside-detail", next); // spotify 배치는 5단계에서
+});
+
+// ===== 좌하단 범례 =====
+function drawLegend() {
+  const svg = document.getElementById("detail-legend");
+
+  // 기호 3개와 이름
+  const names = { wait: "대기 시간", noise: "소음", physical: "신체적 피로도" };
+  LEVEL_KEYS.forEach((key, i) => {
+    const y = 704 + i * 60;
+    svg.append(
+      svgEl("image", { href: `assets/icons/${key}.svg`, x: 58, y, width: 24, height: 48 }),
+      svgEl("text", { class: "legend-text", x: 96, y: y + 40 }, names[key])
+    );
+  });
+
+  // 정도: 1/3, 2/3, 전체 견본
+  [1 / 3, 2 / 3, 1].forEach((level, i) => {
+    const h = ICON.h * level;
+    svg.append(svgEl("rect", { x: 207 + i * 47, y: 873 - h, width: ICON.w, height: h, fill: "url(#level-gradient)" }));
+  });
+  svg.append(svgEl("text", { class: "legend-text", x: 348, y: 864 }, "정도"));
+
+  // 타임라인: 실제 행과 같은 모양, 시각 대신 이름
+  const x0 = 75, y0 = 953;
+  drawTimeline(svg, x0, y0, 271, ["출발시간", "경기장 입장", "귀가시간"], "legend-text");
+  [[130, "대기시작"], [198, "대기종료"]].forEach(([x, label]) => {
+    svg.append(
+      svgEl("line", { class: "wait-tick", x1: x, y1: y0, x2: x, y2: y0 + WAIT_LEN }),
+      svgEl("text", { class: "legend-text", x, y: y0 + WAIT_LEN + 9, "text-anchor": "middle" }, label)
+    );
+  });
+
+  // 정신적 피로도: 도면 구역 색 3단계. 우측 하단, 오른쪽 정렬 (오른쪽 여백 45 = 메인 우측 버튼과 같음)
+  const fx = 1920 - 45, fy = 930;
+  svg.append(svgEl("text", { class: "legend-text", x: fx, y: fy, "text-anchor": "end" }, "정신적 피로도"));
+  ["#D1E9EF", "#9ECCD4", "#61A6B2"].forEach((color, i) => {
+    svg.append(svgEl("rect", { x: fx - ICON.w - (2 - i) * 47, y: fy + 14, width: ICON.w, height: 20, fill: color }));
+  });
+  svg.append(
+    svgEl("text", { class: "legend-text", x: fx, y: fy + 54, "text-anchor": "end" }, "세 기호의 정도가 합쳐진 결과 = 도면 구역의 색"),
+    svgEl("text", { class: "legend-text", x: fx, y: fy + 70, "text-anchor": "end" }, "(정신적 피로도)")
+  );
+}
+
+drawLegend();
 
 setMode("main");
 
