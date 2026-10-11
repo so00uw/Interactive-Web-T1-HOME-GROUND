@@ -193,6 +193,12 @@ const DETAIL_LAYOUT = {
     day2: { timeline: [539, 516], leader: [[1428, 535], [1285, 596], 997] },
     day3: { timeline: [735, 748], leader: [[1435, 765], [1332, 714], 1168] },
   },
+  spotify: {
+    // 8/14 미참여: 지시선은 spotify 8/14 구역을 가리킨다 (reference/05-outside는 membership 쪽을 가리키고 있었음)
+    day1: { photo: [870, 165, 192, 143], leader: [[1400, 290], [1309, 308], 1080] },
+    day2: { timeline: [539, 516], leader: [[1400, 557], [1240, 506], 987] },
+    day3: { timeline: [713, 810], leader: [[1400, 828], [1297, 776], 1133] },
+  },
 };
 
 const toMin = (t) => {
@@ -331,8 +337,7 @@ function renderOutsideDetail(booth) {
 }
 
 document.getElementById("booth-switch").addEventListener("click", (e) => {
-  const next = e.currentTarget.dataset.booth;
-  if (DETAIL_LAYOUT[next]) setMode("outside-detail", next); // spotify 배치는 5단계에서
+  setMode("outside-detail", e.currentTarget.dataset.booth);
 });
 
 // ===== 좌하단 범례 =====
