@@ -116,16 +116,19 @@ function drawK9Name() {
 drawK9Name();
 
 // ===== 화면 상태 =====
-// mode: "main" | "outside" | "inside" | "outside-detail"
+// mode: "main" | "outside" | "inside" | "outside-detail" | "inside-detail"
 // #stage에 mode-* 클래스(디테일이면 detail-{부스}도)로 반영하고, 모양은 CSS가 맡는다.
 const stage = document.getElementById("stage");
 const modeButtons = document.querySelectorAll(".mode-btn");
-const MODES = ["main", "outside", "inside", "outside-detail"];
+const MODES = ["main", "outside", "inside", "outside-detail", "inside-detail"];
+const INSIDE_DELAY = 900; // INSIDE 선택 후 디테일로 넘어가기까지 (부스가 흐려지는 걸 보여 주는 시간)
 const DETAIL_BOOTHS = ["membership", "spotify"];
 let mode = "main";
 let detailBooth = null;
+let insideTimer = null;
 
 function setMode(next, booth = null) {
+  clearTimeout(insideTimer);
   mode = next;
   detailBooth = booth;
   MODES.forEach((m) => stage.classList.toggle(`mode-${m}`, m === mode));
@@ -133,6 +136,8 @@ function setMode(next, booth = null) {
   modeButtons.forEach((btn) => btn.classList.toggle("is-selected", btn.dataset.mode === mode));
   setHoverBooth(null);
   if (mode === "outside-detail") renderOutsideDetail(booth);
+  // INSIDE: 부스가 흐려진 뒤 다른 인터랙션 없이 자동으로 디테일로
+  if (mode === "inside") insideTimer = setTimeout(() => setMode("inside-detail"), INSIDE_DELAY);
 }
 
 modeButtons.forEach((btn) => {
@@ -226,12 +231,12 @@ function drawTimeline(parent, x0, y0, xEnter, labels, textClass) {
   );
 }
 
-// 기호 한 칸: 아래에서부터 level(1/3, 2/3, 3/3)만큼 청록 그라데이션 배경 + 아이콘
-function drawLevelIcon(parent, key, x, y, level) {
+// 기호 한 칸: 아래에서부터 level(1/3, 2/3, 3/3)만큼 그라데이션 배경(외부 청록 / 내부 분홍) + 아이콘
+function drawLevelIcon(parent, key, x, y, level, gradient = "level-gradient") {
   const g = svgEl("g", { class: "level-icon", transform: `translate(${x} ${y})` });
   const fillH = ICON.h * level;
   g.append(
-    svgEl("rect", { x: 0, y: ICON.h - fillH, width: ICON.w, height: fillH, fill: "url(#level-gradient)" }),
+    svgEl("rect", { x: 0, y: ICON.h - fillH, width: ICON.w, height: fillH, fill: `url(#${gradient})` }),
     svgEl("image", { href: `assets/icons/${key}.svg`, x: 2.5, y: 0, width: 31, height: ICON.h })
   );
   parent.append(g);
@@ -300,19 +305,16 @@ function drawDayRow(svg, booth, day) {
   svg.append(g);
 }
 
-function renderBoothInfo(booth) {
-  const box = document.getElementById("booth-info");
-  const { name, events } = BOOTHS[booth];
+// 정보 박스: 제목 + 항목들. 항목은 [클래스, 글] 줄의 목록
+function fillInfoBox(box, title, items) {
   box.innerHTML = "";
   const h = document.createElement("h3");
-  h.textContent = name;
+  h.textContent = title;
   box.append(h);
-  (events || []).forEach(({ title, desc }) => {
-    // "Event 1 · 제목" → "Event 1" / "제목" 두 줄
-    const [label, ...rest] = title.split(" · ");
+  items.forEach((lines) => {
     const item = document.createElement("div");
     item.className = "booth-event";
-    [["event-label", label], ["event-title", rest.join(" · ")], ["event-desc", desc]].forEach(([cls, text]) => {
+    lines.forEach(([cls, text]) => {
       const p = document.createElement("p");
       p.className = cls;
       p.textContent = text;
@@ -320,6 +322,16 @@ function renderBoothInfo(booth) {
     });
     box.append(item);
   });
+}
+
+function renderBoothInfo(booth) {
+  const { name, events } = BOOTHS[booth];
+  // "Event 1 · 제목" → "Event 1" / "제목" 두 줄
+  const items = (events || []).map(({ title, desc }) => {
+    const [label, ...rest] = title.split(" · ");
+    return [["event-label", label], ["event-title", rest.join(" · ")], ["event-desc", desc]];
+  });
+  fillInfoBox(document.getElementById("booth-info"), name, items);
 }
 
 function renderOutsideDetail(booth) {
@@ -339,6 +351,62 @@ function renderOutsideDetail(booth) {
 document.getElementById("booth-switch").addEventListener("click", (e) => {
   setMode("outside-detail", e.currentTarget.dataset.booth);
 });
+
+// ===== Inside 디테일 =====
+// 도면은 CSS로 왼쪽으로 267px 이동. 깔때기와 말풍선은 이미지. 아래 좌표는 reference/02-inside 기준.
+// line: 깔때기에서 날짜까지 가로선 [시작 x, 끝 x] / y: 그 높이
+const INSIDE_LAYOUT = {
+  day1: { line: [1509, 1550], y: 413 },
+  day3: { line: [1487, 1549], y: 675 },
+};
+const INSIDE_LEVEL_KEYS = ["physical", "side"];
+
+function renderInsideDetail() {
+  fillInfoBox(
+    document.getElementById("inside-info"),
+    INSIDE.title,
+    INSIDE.events.map(({ label, desc }) => [["event-label", label], ["event-desc", desc]])
+  );
+
+  const svg = document.getElementById("inside-rows");
+  Object.entries(INSIDE_LAYOUT).forEach(([day, { line: [x1, x2], y }]) => {
+    const match = INSIDE.matches[day];
+    const g = svgEl("g", { class: "match-row" });
+    g.append(
+      svgEl("line", { class: "match-line", x1, y1: y, x2, y2: y }),
+      svgEl("text", { class: "match-date", x: 1561, y }, WEATHER[day].date),
+      svgEl("text", { class: "match-score", x: 1628, y }, match.score),
+      svgEl("text", { class: "match-team", x: 1681, y }, match.team)
+    );
+    // 기호: 신체적 피로도, 옆자리 불편
+    INSIDE_LEVEL_KEYS.forEach((key, i) => {
+      drawLevelIcon(g, key, 1679 + i * (ICON.w + ICON.gap), y + 28, match.level[key], "level-gradient-inside");
+    });
+    // 정규 라운드 기록
+    match.record.forEach((text, i) => {
+      g.append(svgEl("text", { class: "detail-time", x: 1680, y: y + 105 + i * 19 }, text));
+    });
+    svg.append(g);
+  });
+
+  // 좌하단 범례: 기호 2개와 이름, 정도 견본
+  const names = { side: "옆자리 불편", physical: "신체적 피로도" };
+  ["side", "physical"].forEach((key, i) => {
+    const y = 836 + i * 61;
+    svg.append(
+      svgEl("image", { href: `assets/icons/${key}.svg`, x: 58, y, width: 24, height: 48 }),
+      svgEl("text", { class: "legend-text", x: 96, y: y + 39 }, names[key])
+    );
+  });
+  const BAR_H = 52;
+  [1 / 3, 2 / 3, 1].forEach((level, i) => {
+    const h = BAR_H * level;
+    svg.append(svgEl("rect", { x: 54 + i * 47, y: 1016 - h, width: ICON.w, height: h, fill: "url(#level-gradient-inside)" }));
+  });
+  svg.append(svgEl("text", { class: "legend-text", x: 196, y: 1008 }, "정도"));
+}
+
+renderInsideDetail();
 
 // ===== 좌하단 범례 =====
 function drawLegend() {

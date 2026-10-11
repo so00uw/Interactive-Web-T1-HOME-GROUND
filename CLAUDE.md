@@ -32,8 +32,9 @@ css/style.css
 js/main.js        ← 화면 상태 관리, 인터랙션
 js/data.js        ← 부스, 타임라인, 기호 정도, 날씨 데이터
 assets/svg/stadium.svg
-assets/icons/     ← home.svg, wait.svg, noise.svg, physical.svg
-assets/photos/    ← membership-hover.png, spotify-hover.png, spotify-d1.jpg
+assets/svg/inside-hover.svg  ← Inside 디테일 깔때기 (1920×1080, <img>로 그대로 겹침)
+assets/icons/     ← home.svg, wait.svg, noise.svg, physical.svg, side.svg(옆자리 불편)
+assets/photos/    ← membership-hover.png, spotify-hover.png, spotify-d1.jpg, inside-talk.png(Inside 말풍선)
 assets/img/       ← day1-roof.png (1일차 건물 뚜껑. SVG에서 분리한 이미지)
 reference/        ← Figma 화면 캡처 (사이트에서 쓰지 않음, 참고용)
 ```

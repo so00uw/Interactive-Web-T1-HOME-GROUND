@@ -65,3 +65,26 @@ const BOOTHS = {
     name: "K9 Booth",
   },
 };
+
+// ===== Inside (경기장 안) =====
+// 경기가 있던 14일·16일만 기호를 표시한다. 기호 정도는 채움 비율.
+const INSIDE = {
+  title: "14일과 16일의 경기",
+  events: [
+    { label: "DAY 1, Dplus Kia", desc: "2:1 패배" },
+    { label: "DAY 2, Talk Wave Live", desc: "T1의 자체 제작 토크쇼 프로그램" },
+    { label: "DAY 3, Gen.G", desc: "2:0 패배" },
+  ],
+  matches: {
+    day1: {
+      score: "2:1", team: "Dplus Kia",
+      record: ["정규 라운드 115경기", "16승 7패"],
+      level: { physical: 1 / 3, side: 2 / 3 },
+    },
+    day3: {
+      score: "2:0", team: "Gen.G",
+      record: ["정규 라운드 119경기", "16승 8패"],
+      level: { physical: 2 / 3, side: 3 / 3 },
+    },
+  },
+};

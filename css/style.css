@@ -333,8 +333,8 @@ body {
   line-height: 48px;
 }
 
-/* 부스 정보 박스 */
-#booth-info {
+/* 정보 박스 (부스 정보 / 경기 정보) */
+.info-box {
   position: absolute;
   top: 124px;
   left: 54px;
@@ -344,7 +344,7 @@ body {
   background: #d9d9d9;
 }
 
-#booth-info h3 {
+.info-box h3 {
   font-size: 20px;
   font-weight: 700;
   line-height: 26px;
@@ -434,4 +434,105 @@ body {
 
 .mode-outside-detail #booth-switch {
   pointer-events: auto;
+}
+
+/* ===== INSIDE → Inside 디테일 ===== */
+/* 도면을 왼쪽으로 이동, 부스·연결 기둥·이동경로 번호 숨김 (건물만 남김) */
+.mode-inside-detail #stadium {
+  transform: translateX(-267px);
+}
+
+.mode-inside-detail #stadium [id*="-booth-"],
+.mode-inside-detail .route-label {
+  opacity: 0;
+}
+
+/* 메인 요소 숨김. 제목은 작아지며 좌상단 홈 아이콘 자리로 들어간다 */
+#intro-text {
+  transform-origin: 0 0;
+  transition: opacity 0.35s ease, transform 0.8s ease;
+}
+
+.mode-inside-detail #intro-text {
+  opacity: 0;
+  transform: translate(9px, 0) scale(0.12);
+  pointer-events: none;
+}
+
+.mode-inside-detail #mode-buttons,
+.mode-inside-detail #date-labels {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mode-inside-detail #home-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#inside-detail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.mode-inside-detail #inside-detail {
+  opacity: 1;
+  transition-delay: 0.4s;
+}
+
+.stage-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+}
+
+#inside-rows {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+}
+
+/* 경기 정보 박스: 항목 사이 간격이 부스 정보보다 넓다 */
+#inside-info .booth-event {
+  margin-top: 66px;
+}
+
+#inside-info .booth-event:first-of-type {
+  margin-top: 8px;
+}
+
+/* 날짜 · 스코어 · 상대 팀 */
+.match-line {
+  stroke: #b6b6b6;
+  stroke-width: 1;
+}
+
+.match-date,
+.match-score,
+.match-team {
+  fill: #666666;
+  font-weight: 300;
+  dominant-baseline: central;
+}
+
+.match-date {
+  font-size: 21px;
+}
+
+.match-score {
+  font-size: 17px;
+}
+
+.match-team {
+  font-size: 18px;
 }
