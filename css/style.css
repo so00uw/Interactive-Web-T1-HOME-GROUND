@@ -536,3 +536,87 @@ body {
 .match-team {
   font-size: 18px;
 }
+
+/* ===== 인트로 ===== */
+#intro {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  perspective: 1600px; /* 원이 뒤로 눕는 rotateX용 */
+  display: none;
+}
+
+.is-intro #intro {
+  display: block;
+}
+
+/* 인트로·전환 시퀀스 동안은 GSAP가 움직임을 맡으므로 CSS 전환을 끈다 */
+.is-intro *,
+.is-intro *::before,
+.is-intro *::after {
+  transition: none !important;
+}
+
+#intro-disc {
+  position: absolute;
+  top: 217px;
+  left: 637px;
+  width: 646px;
+  height: 646px;
+}
+
+#intro-disc svg {
+  display: block;
+  width: 646px;
+  height: 646px;
+}
+
+#intro-progress {
+  fill: none;
+  stroke: #61a6b2;
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+#intro-text-match {
+  position: absolute;
+  top: 494px;
+  left: 0;
+  width: 1920px;
+  font-size: 46px;
+  line-height: 58px;
+  font-weight: 400;
+  color: #717171;
+  text-align: center;
+  pointer-events: none;
+}
+
+#intro-accept {
+  position: absolute;
+  top: 780px;
+  left: 827px;
+  width: 266px;
+  height: 82px;
+  border: none;
+  background: radial-gradient(ellipse at center, #ffffff 35%, #b9d7dd 100%);
+  color: #717171;
+  font-family: inherit;
+  font-size: 36px;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+#intro-accept:hover {
+  filter: brightness(0.97) saturate(1.3);
+}
+
+/* 전환 시퀀스 재생 중: 아무 곳이나 클릭하면 건너뛰기 */
+.is-sequence #intro {
+  cursor: pointer;
+}
+
+.is-sequence #intro-accept {
+  pointer-events: none;
+}

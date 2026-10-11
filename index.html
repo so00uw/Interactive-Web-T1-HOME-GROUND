@@ -304,8 +304,41 @@
         </defs>
       </svg>
     </section>
+
+    <!-- 인트로: LoL 매칭 수락 화면 스타일 (첫 방문만, ?intro면 항상) -->
+    <div id="intro">
+      <div id="intro-disc">
+        <svg viewBox="0 0 646 646" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <!-- 바깥 링 = 외부(청록), 안쪽 원 = 내부(분홍) -->
+            <radialGradient id="intro-ring-gradient">
+              <stop offset="0.84" stop-color="#FFFFFF" />
+              <stop offset="1" stop-color="#D1E9EF" />
+            </radialGradient>
+            <radialGradient id="intro-core-gradient">
+              <stop offset="0" stop-color="#FFFFFF" />
+              <stop offset="1" stop-color="#F8D3DC" />
+            </radialGradient>
+          </defs>
+          <g id="intro-color">
+            <circle cx="323" cy="323" r="323" fill="url(#intro-ring-gradient)" />
+            <circle cx="323" cy="323" r="272" fill="url(#intro-core-gradient)" />
+          </g>
+          <!-- 기울어지며 바뀌는 경기장 바닥 (03-intro의 층 바닥과 같은 스타일: 연한 회색 바깥선 + 분홍 F1) -->
+          <g id="intro-floor" opacity="0">
+            <circle cx="323" cy="323" r="322" fill="#FFFFFF" stroke="#E2E2E2" stroke-width="1" />
+            <circle cx="323" cy="323" r="272" fill="#E95578" fill-opacity="0.25" stroke="#E95578" stroke-width="2.3" />
+          </g>
+          <!-- 링을 따라 채워지는 바: ACCEPT 뒤(6시)에서 시작해 9시 → 12시 → 3시 → 6시 -->
+          <circle id="intro-progress" cx="323" cy="323" r="297.5" transform="rotate(90 323 323)" />
+        </svg>
+      </div>
+      <p id="intro-text-match">T1 HOME GROUND<br />MATCH FOUND</p>
+      <button type="button" id="intro-accept">ACCEPT</button>
+    </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
   <script src="js/data.js"></script>
   <script src="js/main.js"></script>
 </body>

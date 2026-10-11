@@ -455,6 +455,110 @@ drawLegend();
 
 setMode("main");
 
+// ===== 인트로 → 전환 시퀀스 → 메인 =====
+// 첫 방문에만 재생. 주소에 ?intro가 있으면 항상 재생.
+const VISITED_KEY = "t1-home-ground-visited";
+const PROGRESS_DURATION = 10; // 링이 한 바퀴 채워지는 시간(초). 다 차면 누를 때까지 그대로
+
+function hasVisited() {
+  try {
+    return localStorage.getItem(VISITED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markVisited() {
+  try {
+    localStorage.setItem(VISITED_KEY, "1");
+  } catch {
+    // 저장이 막힌 환경(시크릿 모드 등)에서는 기록 없이 진행
+  }
+}
+
+function playIntro() {
+  // 전환 시퀀스에서 움직이는 요소들. 끝나면 인라인 스타일을 지워서 다시 CSS가 상태를 맡게 한다
+  const $ = (sel) => [...document.querySelectorAll(sel)];
+  const layers = { day1: $("#day1"), day2: $("#day2"), day3: $("#day3") };
+  const buildings = { day1: $("#day1-building"), day2: $("#day2-building"), day3: $("#day3-building") };
+  const booths = $('#stadium [id*="-booth-"]');
+  const routes = $(".route-labels");
+  const grid = $("#grid");
+  const ui = { text: $("#intro-text"), labels: $("#date-labels"), buttons: $("#mode-buttons") };
+  const animated = [...Object.values(layers), ...Object.values(buildings), booths, routes, grid, ...Object.values(ui)].flat();
+
+  // 세 층을 가운데(day2 위치)에 겹쳐 둔다. 층 중심 y: day1 258, day2 552, day3 853 (F1~F3)
+  const STACK = { day1: 552 - 258, day3: 552 - 853 };
+
+  stage.classList.add("is-intro");
+  gsap.set(animated, { opacity: 0 });
+  gsap.set(layers.day1, { y: STACK.day1 });
+  gsap.set(layers.day3, { y: STACK.day3 });
+  gsap.set([layers.day1, layers.day2, layers.day3], { opacity: 1 }); // 층 그룹은 보이고, 안의 요소만 숨김
+
+  // 링을 따라 채워지는 바 (LoL 매칭 수락 화면)
+  const progress = document.getElementById("intro-progress");
+  const circumference = 2 * Math.PI * progress.r.baseVal.value;
+  gsap.set(progress, { strokeDasharray: circumference, strokeDashoffset: circumference });
+  const progressTween = gsap.to(progress, {
+    strokeDashoffset: 0,
+    duration: PROGRESS_DURATION,
+    ease: "none",
+  });
+
+  const acceptBtn = document.getElementById("intro-accept");
+  acceptBtn.addEventListener("click", () => {
+    progressTween.pause(); // 채워지던 지점에서 멈춤
+    markVisited();
+    playSequence();
+  }, { once: true });
+
+  function playSequence() {
+    stage.classList.add("is-sequence");
+    const tl = gsap.timeline({ delay: 1.2, onComplete: finish });
+
+    // 1. 원이 뒤로 눕듯이 기울어져 경기장 바닥이 된다.
+    //    안쪽 원(r 272)이 F1(가로 반지름 298.5, 세로 99)과 같은 크기·기울기가 되도록 scale 1.1, rotationX 70.
+    //    겹쳐 둔 층 가운데(y 552)로 12px 내려간다
+    tl.to(["#intro-text-match", "#intro-accept", "#intro-progress"], { opacity: 0, duration: 0.4 })
+      .to("#intro-disc", { rotationX: 70, scale: 1.1, y: 12, duration: 1, ease: "power2.inOut" }, "<0.1")
+      .to("#intro-floor", { opacity: 1, duration: 0.8 }, "<")
+      .to("#intro-color", { opacity: 0, duration: 0.8 }, "<")
+
+    // 2. 바닥이 건물 외관 도면(day1-building)으로 바뀐다
+      .to("#intro-disc", { opacity: 0, duration: 0.6 })
+      .to(buildings.day1, { opacity: 1, duration: 0.6 }, "<")
+
+    // 3. 세 층이 분리된다: day2는 그대로, day1은 위로, day3는 아래로
+      .addLabel("split")
+      .to(layers.day1, { y: 0, duration: 1.2, ease: "power2.inOut" }, "split")
+      .to(layers.day3, { y: 0, duration: 1.2, ease: "power2.inOut" }, "split")
+      .to([buildings.day2, buildings.day3], { opacity: 1, duration: 0.8 }, "split+=0.2")
+      .to(grid, { opacity: 1, duration: 0.8 }, "split+=0.4")
+
+    // 4. 외부 부스 구역이 나타난다
+      .to([booths, routes], { opacity: 1, duration: 0.6, stagger: 0 })
+
+    // 5. 제목, 설명, 날짜 라벨, 우측 버튼이 나타나며 메인 완성
+      .to([ui.text, ui.labels, ui.buttons], { opacity: 1, duration: 0.6 });
+
+    // 재생 중 화면을 클릭하면 바로 메인 최종 상태로
+    // (ACCEPT 클릭 이벤트가 끝난 뒤에 등록해야 같은 클릭으로 건너뛰지 않는다)
+    setTimeout(() => {
+      document.getElementById("intro").addEventListener("click", () => tl.progress(1), { once: true });
+    });
+  }
+
+  function finish() {
+    progressTween.kill();
+    gsap.set(animated, { clearProps: "opacity,transform" });
+    stage.classList.remove("is-intro", "is-sequence");
+  }
+}
+
+const params = new URLSearchParams(location.search);
+if (params.has("intro") || !hasVisited()) playIntro();
+
 // ===== stadium.svg id 점검 (개발용) =====
 // spec에서 쓰는 id가 SVG에 없으면 콘솔에 경고를 띄운다.
 const REQUIRED_IDS = [
