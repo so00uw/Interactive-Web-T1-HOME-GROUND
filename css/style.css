@@ -1,0 +1,45 @@
+/* ===== 기본 ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* 스크롤 없음 */
+  background: #ffffff; /* 무대 바깥 여백 = 배경색 */
+}
+
+body {
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #000000;
+}
+
+/* ===== 무대 (1920×1080 고정, 창 크기에 맞춰 비율 유지 확대·축소) ===== */
+#stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  background: #ffffff;
+  overflow: hidden;
+  transform-origin: center center;
+  /* scale 값은 main.js의 fitStage()가 --stage-scale로 넣는다 */
+  transform: translate(-50%, -50%) scale(var(--stage-scale, 1));
+}
+
+/* ===== 경기장 도면 ===== */
+#stadium {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: visible;
+}
