@@ -43,3 +43,98 @@ body {
   height: 1080px;
   overflow: visible;
 }
+
+/* 연결 기둥(면 + 테두리 선)은 메인에서 숨김 */
+#stadium [id^="link-"] {
+  opacity: 0;
+}
+
+/* 이동경로 번호 (1)~(4) */
+.route-label {
+  fill: #666666;
+  font-size: 11px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* ===== 날짜 라벨 (회색 깃발 + 층까지 가로선) ===== */
+#date-labels {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  pointer-events: none;
+}
+
+.date-label-line {
+  stroke: #848484;
+  stroke-width: 2;
+}
+
+.date-label-flag {
+  fill: #848484;
+}
+
+.date-label-text {
+  fill: #ffffff;
+  font-size: 17px;
+  font-weight: 300;
+  dominant-baseline: central;
+}
+
+/* ===== 좌상단: 제목 / 부제 / 설명 ===== */
+#intro-text {
+  position: absolute;
+  top: 42px;
+  left: 45px; /* 우측 버튼의 오른쪽 여백(1920 - 1875 = 45)과 맞춤 */
+}
+
+#title {
+  font-size: 60px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #414141;
+  white-space: nowrap;
+}
+
+#subtitle {
+  margin-top: 18px;
+  font-size: 24px;
+  font-weight: 500;
+  color: #414141;
+}
+
+#description {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 16px;
+  color: #666666;
+}
+
+/* ===== 우측 버튼 ===== */
+#mode-buttons {
+  position: absolute;
+  top: 471px;
+  left: 1727px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mode-btn {
+  width: 148px;
+  height: 30px;
+  border: none;
+  background: #d9d9d9;
+  color: #000000;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.mode-btn.is-selected {
+  background: #999999;
+}
