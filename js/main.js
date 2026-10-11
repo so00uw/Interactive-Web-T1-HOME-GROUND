@@ -101,6 +101,69 @@ function drawRouteLabels() {
 
 drawRouteLabels();
 
+// k9 부스 이름: 호버 시 14일 (1) 옆에 표시
+function drawK9Name() {
+  const NS = "http://www.w3.org/2000/svg";
+  const [, x, y] = ROUTE_LABELS.day1.find(([num]) => num === 1);
+  const text = document.createElementNS(NS, "text");
+  text.setAttribute("id", "k9-name");
+  text.setAttribute("x", x + 12);
+  text.setAttribute("y", y);
+  text.textContent = BOOTHS.k9.name;
+  document.getElementById("day1-route").append(text);
+}
+
+drawK9Name();
+
+// ===== 화면 상태 =====
+// mode: "main" | "outside" | "inside". #stage에 mode-* 클래스로 반영하고, 모양은 CSS가 맡는다.
+const stage = document.getElementById("stage");
+const modeButtons = document.querySelectorAll(".mode-btn");
+let mode = "main";
+
+function setMode(next) {
+  mode = next;
+  stage.classList.remove("mode-main", "mode-outside", "mode-inside");
+  stage.classList.add(`mode-${mode}`);
+  modeButtons.forEach((btn) => btn.classList.toggle("is-selected", btn.dataset.mode === mode));
+  setHoverBooth(null);
+}
+
+modeButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const target = btn.dataset.mode;
+    if (target === "event") return; // EVENT INFO는 9단계에서
+    // 같은 버튼을 다시 누르면 선택 해제
+    setMode(mode === target ? "main" : target);
+  });
+});
+
+// ESC: 선택 상태 → 메인
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && mode !== "main") setMode("main");
+});
+
+// ===== 부스 호버 (OUTSIDE 선택 상태에서만) =====
+// 어느 날짜 구역에 올려도 그 부스의 3일치가 함께 반응한다.
+// membership, spotify: 연결 기둥 + 호버 사진 / k9: 이름만
+const HOVER_BOOTHS = ["membership", "spotify", "k9"];
+
+function setHoverBooth(booth) {
+  HOVER_BOOTHS.forEach((b) => stage.classList.toggle(`hover-${b}`, b === booth));
+}
+
+HOVER_BOOTHS.forEach((booth) => {
+  document.querySelectorAll(`#stadium [id$="-booth-${booth}"]`).forEach((el) => {
+    el.addEventListener("mouseenter", () => {
+      if (mode === "outside") setHoverBooth(booth);
+    });
+    el.addEventListener("mouseleave", () => setHoverBooth(null));
+    // 클릭 → Outside 디테일 (4단계에서 연결)
+  });
+});
+
+setMode("main");
+
 // ===== stadium.svg id 점검 (개발용) =====
 // spec에서 쓰는 id가 SVG에 없으면 콘솔에 경고를 띄운다.
 const REQUIRED_IDS = [

@@ -44,8 +44,72 @@ body {
   overflow: visible;
 }
 
-/* 연결 기둥(면 + 테두리 선)은 메인에서 숨김 */
+/* 마우스는 부스 구역만 받는다 (건물, 뚜껑 이미지, grid가 부스를 가리지 않게) */
+#stadium * {
+  pointer-events: none;
+}
+
+#stadium [id*="-booth-"],
+#stadium [id*="-booth-"] * {
+  pointer-events: auto;
+}
+
+/* 상태에 따라 투명도가 바뀌는 요소 */
+#stadium [id$="-building"],
+#stadium [id*="-booth-"],
+#stadium [id^="link-"],
+#date-labels,
+.hover-photo,
+#k9-name {
+  transition: opacity 0.35s ease;
+}
+
+/* 연결 기둥(면 + 테두리 선)은 기본 숨김. 부스 호버 시에만 보임 */
 #stadium [id^="link-"] {
+  opacity: 0;
+}
+
+/* ===== OUTSIDE 선택 ===== */
+.mode-outside #stadium [id$="-building"],
+.mode-outside #date-labels {
+  opacity: 0.5;
+}
+
+.mode-outside #stadium [id$="-booth-membership"],
+.mode-outside #stadium [id$="-booth-spotify"] {
+  cursor: pointer;
+}
+
+/* 부스 호버: 같은 부스의 연결 기둥(면 + 선)과 호버 사진 */
+.hover-membership #stadium [id^="link-membership"],
+.hover-spotify #stadium [id^="link-spotify"],
+.hover-membership #hover-photo-membership,
+.hover-spotify #hover-photo-spotify,
+.hover-k9 #k9-name {
+  opacity: 1;
+}
+
+/* ===== INSIDE 선택 ===== */
+.mode-inside #stadium [id*="-booth-"] {
+  opacity: 0.5;
+}
+
+/* ===== 부스 호버 사진 ===== */
+.hover-photo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* k9 부스 이름 */
+#k9-name {
+  fill: #666666;
+  font-size: 11px;
+  dominant-baseline: central;
   opacity: 0;
 }
 
