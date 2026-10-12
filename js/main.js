@@ -116,42 +116,45 @@ function drawK9Name() {
 drawK9Name();
 
 // ===== 화면 상태 =====
-// mode: "main" | "outside" | "inside" | "outside-detail" | "inside-detail"
+// mode: "main" | "outside" | "inside" | "event" | "outside-detail" | "inside-detail" | "event-detail"
 // #stage에 mode-* 클래스(디테일이면 detail-{부스}도)로 반영하고, 모양은 CSS가 맡는다.
 const stage = document.getElementById("stage");
 const modeButtons = document.querySelectorAll(".mode-btn");
-const MODES = ["main", "outside", "inside", "outside-detail", "inside-detail"];
-const INSIDE_DELAY = 900; // INSIDE 선택 후 디테일로 넘어가기까지 (부스가 흐려지는 걸 보여 주는 시간)
+const MODES = ["main", "outside", "inside", "event", "outside-detail", "inside-detail", "event-detail"];
+const AUTO_DETAIL_DELAY = 900; // INSIDE·EVENT INFO 선택 후 디테일로 넘어가기까지 (도면이 흐려지는 걸 보여 주는 시간)
+const AUTO_DETAIL = { inside: "inside-detail", event: "event-detail" };
 const DETAIL_BOOTHS = ["membership", "spotify"];
 let mode = "main";
 let detailBooth = null;
-let insideTimer = null;
+let autoDetailTimer = null;
 
 function setMode(next, booth = null) {
-  clearTimeout(insideTimer);
+  clearTimeout(autoDetailTimer);
   mode = next;
   detailBooth = booth;
   MODES.forEach((m) => stage.classList.toggle(`mode-${m}`, m === mode));
   DETAIL_BOOTHS.forEach((b) => stage.classList.toggle(`detail-${b}`, b === detailBooth));
   modeButtons.forEach((btn) => btn.classList.toggle("is-selected", btn.dataset.mode === mode));
   setHoverBooth(null);
+  setEventGroup(null);
   if (mode === "outside-detail") renderOutsideDetail(booth);
-  // INSIDE: 부스가 흐려진 뒤 다른 인터랙션 없이 자동으로 디테일로
-  if (mode === "inside") insideTimer = setTimeout(() => setMode("inside-detail"), INSIDE_DELAY);
+  // INSIDE, EVENT INFO: 도면이 흐려진 뒤 다른 인터랙션 없이 자동으로 디테일로
+  if (AUTO_DETAIL[mode]) autoDetailTimer = setTimeout(() => setMode(AUTO_DETAIL[mode]), AUTO_DETAIL_DELAY);
 }
 
 modeButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     const target = btn.dataset.mode;
-    if (target === "event") return; // EVENT INFO는 9단계에서
     // 같은 버튼을 다시 누르면 선택 해제
     setMode(mode === target ? "main" : target);
   });
 });
 
-// ESC: 한 단계 뒤로 (디테일 → 메인, 선택 상태 → 메인)
+// ESC: 한 단계 뒤로 (Event Info의 일정 선택 → 선택 해제, 디테일 → 메인, 선택 상태 → 메인)
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && mode !== "main") setMode("main");
+  if (e.key !== "Escape") return;
+  if (eventGroup) setEventGroup(null);
+  else if (mode !== "main") setMode("main");
 });
 
 // 홈 아이콘 → 메인
@@ -192,6 +195,7 @@ const ICON = { w: 36, h: 62, gap: 8 }; // 기호 한 칸
 
 // 날짜별 행 배치. timeline: 출발 지점 x와 선 높이 y / leader: 부스 구역 점 → 꺾이는 점 → 끝 x
 // 미참여(absent) 날은 timeline 대신 photo: [x, y, 폭, 높이]
+// memoBelow: 메모를 기호 오른쪽이 아니라 아래에 둔다 (메모가 긴 부스)
 const DETAIL_LAYOUT = {
   membership: {
     day1: { timeline: [645, 229], leader: [[1443, 238], [1309, 308], 1080] },
@@ -199,6 +203,7 @@ const DETAIL_LAYOUT = {
     day3: { timeline: [735, 748], leader: [[1435, 765], [1332, 714], 1168] },
   },
   spotify: {
+    memoBelow: true,
     // 8/14 미참여: 지시선은 spotify 8/14 구역을 가리킨다 (reference/05-outside는 membership 쪽을 가리키고 있었음)
     day1: { photo: [870, 165, 192, 143], leader: [[1400, 290], [1309, 308], 1080] },
     day2: { timeline: [539, 516], leader: [[1400, 557], [1240, 506], 987] },
@@ -296,10 +301,15 @@ function drawDayRow(svg, booth, day) {
     drawLevelIcon(g, key, iconX + i * (ICON.w + ICON.gap), iconY, data.level[key]);
   });
 
-  // 메모: 기호 오른쪽 위
+  // 메모: 기호 오른쪽 위, 또는 기호 아래 (여러 줄이면 배열)
   if (data.memo) {
-    const memoX = iconX + 3 * ICON.w + 2 * ICON.gap + 12;
-    g.append(svgEl("text", { class: "detail-time", x: memoX, y: iconY + 9 }, data.memo));
+    const lines = [].concat(data.memo);
+    const below = DETAIL_LAYOUT[booth].memoBelow;
+    const memoX = below ? iconX : iconX + 3 * ICON.w + 2 * ICON.gap + 12;
+    const memoY = below ? iconY + ICON.h + 15 : iconY + 9;
+    lines.forEach((line, i) => {
+      g.append(svgEl("text", { class: "detail-time", x: memoX, y: memoY + i * 18 }, line));
+    });
   }
 
   svg.append(g);
@@ -325,13 +335,45 @@ function fillInfoBox(box, title, items) {
 }
 
 function renderBoothInfo(booth) {
-  const { name, events } = BOOTHS[booth];
+  const { name, events, flow, note } = BOOTHS[booth];
+  const box = document.getElementById("booth-info");
   // "Event 1 · 제목" → "Event 1" / "제목" 두 줄
   const items = (events || []).map(({ title, desc }) => {
     const [label, ...rest] = title.split(" · ");
     return [["event-label", label], ["event-title", rest.join(" · ")], ["event-desc", desc]];
   });
-  fillInfoBox(document.getElementById("booth-info"), name, items);
+  fillInfoBox(box, name, items);
+
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+
+  // 순서: 가운데 정렬, 단계 사이에 ↓
+  if (flow) {
+    const list = el("div", "booth-flow");
+    flow.forEach((step, i) => {
+      if (i > 0) list.append(el("p", "flow-arrow", "↓"));
+      list.append(el("p", "flow-step", step));
+    });
+    box.append(list);
+  }
+
+  // 메모: 제목 한 줄, 원인이 있으면 "원인들 → 결과"
+  if (note) {
+    const wrap = el("div", "booth-note");
+    wrap.append(el("p", "note-title", note.title));
+    if (note.causes) {
+      const row = el("div", "note-cause");
+      const causes = el("div", "note-causes");
+      note.causes.forEach((c) => causes.append(el("p", "", c)));
+      row.append(causes, el("p", "", "→"), el("p", "", note.result));
+      wrap.append(row);
+    }
+    box.append(wrap);
+  }
 }
 
 function renderOutsideDetail(booth) {
@@ -365,7 +407,11 @@ function renderInsideDetail() {
   fillInfoBox(
     document.getElementById("inside-info"),
     INSIDE.title,
-    INSIDE.events.map(({ label, desc }) => [["event-label", label], ["event-desc", desc]])
+    INSIDE.events.map(({ label, desc, note }) => [
+      ["event-label", label],
+      ["event-desc", desc],
+      ...(note ? [["event-desc event-note", note]] : []),
+    ])
   );
 
   const svg = document.getElementById("inside-rows");
@@ -389,6 +435,12 @@ function renderInsideDetail() {
     svg.append(g);
   });
 
+  // 8/15: 경기가 없던 날이라 날짜만 / 깔때기 아래: 세 날이 흘러내린 결과
+  svg.append(
+    svgEl("text", { class: "match-date", x: 1561, y: 547 }, INSIDE.day2Date),
+    svgEl("text", { class: "match-team", x: 1372, y: 744, "text-anchor": "middle" }, INSIDE.conclusion)
+  );
+
   // 좌하단 범례: 기호 2개와 이름, 정도 견본
   const names = { side: "옆자리 불편", physical: "신체적 피로도" };
   ["side", "physical"].forEach((key, i) => {
@@ -407,6 +459,138 @@ function renderInsideDetail() {
 }
 
 renderInsideDetail();
+
+// ===== Event Info =====
+// 좌측 일정표의 항목을 누르면 그 묶음(booth / inside) 색이 바뀌고 사진이 나온다. 좌표는 reference/01~03-info 기준.
+// 일정표 시각의 y (시간에 비례하지 않음)
+const EVENT_TIME_Y = {
+  "09:00": 269, "12:00": 361, "15:30": 549, "16:00": 586, "16:30": 623,
+  "17:00": 660, "19:00": 848, "19:30": 885, "21:30": 996,
+};
+// 사진 묶음의 왼쪽 위 [x, y]. booth: 구역 제목 위 / inside: 사진 위
+const EVENT_PHOTO_POS = {
+  booth: [[431, 268], [993, 268], [431, 640]],
+  inside: [[396, 388], [562, 388], [853, 388], [1173, 388], [1529, 388]],
+};
+const PHOTO_SWEEP = 0.35; // 사진이 왼쪽 끝에서 오른쪽 끝까지 차례로 나타나는 데 걸리는 시간(초)
+let eventGroup = null;
+
+function htmlEl(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+// 사진은 2x로 내보낸 것이라 원본의 절반 크기로 표시
+function photoEl(file) {
+  const img = htmlEl("img", "event-photo");
+  img.alt = "";
+  img.addEventListener("load", () => {
+    img.style.width = `${img.naturalWidth / 2}px`;
+    img.style.height = `${img.naturalHeight / 2}px`;
+  });
+  img.src = `assets/photos/${file}`;
+  return img;
+}
+
+function renderEventInfo() {
+  const info = EVENT_INFO;
+  document.getElementById("event-name").textContent = info.name;
+  document.getElementById("event-slogan").textContent = info.slogan;
+  document.getElementById("event-date").textContent = info.date;
+  document.getElementById("event-place").textContent = info.place;
+
+  // 일정표: 세로축 + 시각 눈금 + 항목 (항목 위쪽 가로선 색 = 묶음 색)
+  const schedule = document.getElementById("event-schedule");
+  const items = info.schedule;
+  const top = EVENT_TIME_Y[items[0].time];
+  const bottom = EVENT_TIME_Y[items.at(-1).time];
+  const axis = htmlEl("div", "schedule-axis");
+  axis.style.top = `${top}px`;
+  axis.style.height = `${bottom - top + 1}px`;
+  schedule.append(axis);
+
+  items.forEach((item, i) => {
+    const y = EVENT_TIME_Y[item.time];
+    const tick = htmlEl("div", "schedule-tick");
+    tick.style.top = `${y}px`;
+    const time = htmlEl("p", "schedule-time", item.time);
+    time.style.top = `${y}px`;
+    schedule.append(tick, time);
+
+    if (!item.name) {
+      // 끝 시각: 가로선만 (앞 항목의 묶음 색)
+      const end = htmlEl("div", `schedule-end group-${items[i - 1].group}`);
+      end.style.top = `${y}px`;
+      schedule.append(end);
+      return;
+    }
+    const btn = htmlEl("button", `schedule-item group-${item.group}`);
+    btn.type = "button";
+    btn.style.top = `${y}px`;
+    btn.style.height = `${EVENT_TIME_Y[items[i + 1].time] - y}px`;
+    btn.append(htmlEl("span", "", item.name));
+    // 같은 묶음을 다시 누르면 선택 해제
+    btn.addEventListener("click", () => setEventGroup(eventGroup === item.group ? null : item.group));
+    schedule.append(btn);
+  });
+
+  // Booth 사진: 구역 제목 / 사진들 / 부스 이름
+  const boothPanel = document.getElementById("event-photos-booth");
+  info.booth.forEach(({ title, photos, captions }, i) => {
+    const area = htmlEl("div", "photo-group");
+    [area.style.left, area.style.top] = EVENT_PHOTO_POS.booth[i].map((v) => `${v}px`);
+    const row = htmlEl("div", "photo-row");
+    photos.forEach((f) => row.append(photoEl(f)));
+    const caps = htmlEl("div", "photo-captions");
+    captions.forEach((c) => caps.append(htmlEl("p", "", c)));
+    area.append(htmlEl("p", "photo-group-title", title), row, caps);
+    boothPanel.append(area);
+  });
+
+  // 경기장 안 사진: 사진들 / 프로그램 이름 / 날짜별 내용
+  const insidePanel = document.getElementById("event-photos-inside");
+  info.inside.forEach(({ title, photos, details }, i) => {
+    const group = htmlEl("div", "photo-group");
+    [group.style.left, group.style.top] = EVENT_PHOTO_POS.inside[i].map((v) => `${v}px`);
+    const row = htmlEl("div", "photo-row");
+    photos.forEach((f) => row.append(photoEl(f)));
+    const list = htmlEl("div", "photo-details");
+    details.forEach(([day, text]) => {
+      const line = htmlEl("p");
+      if (day) line.append(htmlEl("span", "detail-day", day));
+      line.append(text);
+      list.append(line);
+    });
+    group.append(row, htmlEl("p", "photo-group-title", title), list);
+    insidePanel.append(group);
+  });
+}
+
+// 일정 묶음 선택: 색을 바꾸고 사진을 왼쪽부터 오른쪽으로 차례로 보여 준다
+function setEventGroup(group) {
+  eventGroup = group;
+  ["booth", "inside"].forEach((g) => stage.classList.toggle(`event-${g}`, g === group));
+  gsap.killTweensOf(".event-photos *");
+  if (!group) return;
+
+  // 사진은 한 장씩, 글은 묶음 단위로. 화면 x 위치에 비례해서 늦게 나타난다
+  const panel = document.getElementById(`event-photos-${group}`);
+  const targets = [...panel.querySelectorAll(".event-photo, .photo-group > p, .photo-captions, .photo-details")];
+  const xs = targets.map((el) => el.getBoundingClientRect().left);
+  const minX = Math.min(...xs);
+  const range = Math.max(...xs) - minX || 1;
+  gsap.fromTo(targets, { opacity: 0, x: -10 }, {
+    opacity: 1,
+    x: 0,
+    duration: 0.4,
+    ease: "power2.out",
+    stagger: (i) => ((xs[i] - minX) / range) * PHOTO_SWEEP,
+  });
+}
+
+renderEventInfo();
 
 // ===== 좌하단 범례 =====
 function drawLegend() {
