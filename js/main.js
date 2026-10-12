@@ -128,6 +128,17 @@ let mode = "main";
 let detailBooth = null;
 let autoDetailTimer = null;
 
+// 디테일 화면을 모두 봤는지: Outside 두 부스, Inside, Event Info
+// 다 보면 #stage에 all-seen → 디테일에서는 홈으로 돌아가라는 안내, 메인에서는 인사이트 문장
+const DETAIL_PAGES = ["outside-detail:membership", "outside-detail:spotify", "inside-detail", "event-detail"];
+const seenPages = new Set();
+
+function markSeen(page) {
+  if (!DETAIL_PAGES.includes(page)) return;
+  seenPages.add(page);
+  stage.classList.toggle("all-seen", DETAIL_PAGES.every((p) => seenPages.has(p)));
+}
+
 function setMode(next, booth = null) {
   clearTimeout(autoDetailTimer);
   mode = next;
@@ -138,6 +149,7 @@ function setMode(next, booth = null) {
   setHoverBooth(null);
   setEventGroup(null);
   if (mode === "outside-detail") renderOutsideDetail(booth);
+  markSeen(booth ? `${mode}:${booth}` : mode);
   // INSIDE, EVENT INFO: 도면이 흐려진 뒤 다른 인터랙션 없이 자동으로 디테일로
   if (AUTO_DETAIL[mode]) autoDetailTimer = setTimeout(() => setMode(AUTO_DETAIL[mode]), AUTO_DETAIL_DELAY);
 }

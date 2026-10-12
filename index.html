@@ -256,11 +256,21 @@
       </p>
     </header>
 
+    <!-- 인사이트: 디테일 화면을 모두 본 뒤 메인에 나타남 -->
+    <div id="insight">
+      <p>3일 동안 경기장 밖에서 17시간 30분, 안에서 17시간 17분을 보냈다.</p>
+      <p>머문 시간은 거의 같았지만, 기억은 같은 무게로 남지 않았다.</p>
+      <p>기대는 경기가 열리는 안을 향했고, 오래 남은 것은 밖에서의 대기와 피로였다.</p>
+    </div>
+
     <!-- 우측 버튼 -->
     <nav id="mode-buttons">
       <button type="button" class="mode-btn" data-mode="event">EVENT INFO</button>
       <button type="button" class="mode-btn" data-mode="outside">OUTSIDE</button>
       <button type="button" class="mode-btn" data-mode="inside">INSIDE</button>
+      <!-- 클릭 안내 (화면 상태에 따라 하나만 보임) -->
+      <p class="hint hint-main">버튼을 눌러 원하는 화면을 보세요</p>
+      <p class="hint hint-outside">도면의 부스 구역에 마우스를 올리고,<br />클릭하면 자세히 볼 수 있어요</p>
     </nav>
 
     <!-- 홈 아이콘 (메인 이외의 모든 화면) -->
@@ -268,6 +278,8 @@
       <img src="assets/icons/home.svg" alt="" />
       <span class="home-tooltip">HOME</span>
     </button>
+    <!-- 디테일 화면을 모두 본 뒤: 홈으로 돌아가라는 안내 -->
+    <p class="hint" id="home-hint">← 모든 화면을 둘러봤어요. 홈으로 돌아가 보세요</p>
 
     <!-- Outside 디테일 (main.js가 내용 생성) -->
     <section id="outside-detail">
@@ -285,6 +297,7 @@
         <g id="detail-legend"></g>
       </svg>
       <button type="button" id="booth-switch"></button>
+      <p class="hint" id="booth-switch-hint">눌러서<br />다른 부스 보기</p>
     </section>
 
     <!-- Inside 디테일: 도면 오른쪽 깔때기(inside-hover.svg)와 말풍선(inside-talk.png)은 1920×1080 그대로 겹침 -->
@@ -312,6 +325,7 @@
         <p><span id="event-name"></span><span id="event-slogan"></span></p>
         <p><span id="event-date"></span><span id="event-place"></span></p>
       </div>
+      <p class="hint" id="event-hint">일정 항목을 누르면 사진을 볼 수 있어요</p>
       <div id="event-schedule"></div>
       <div id="event-photos-booth" class="event-photos"></div>
       <div id="event-photos-inside" class="event-photos"></div>
